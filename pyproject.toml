@@ -8,6 +8,7 @@ dependencies = [
     "dotenv>=0.9.9",
     "folium>=0.19.5",
     "geopandas>=1.0.1",
+    "matplotlib>=3.10.1",
     "pystac-client>=0.8.6",
     "rasterio>=1.4.3",
     "requests>=2.32.3",
