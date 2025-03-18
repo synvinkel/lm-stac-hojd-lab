@@ -6,6 +6,13 @@ Uses `UV`: https://docs.astral.sh/uv/getting-started/installation/#homebrew
 
 ## Usage
 
+To set up credentials copy `.env.example` to `.env`:
+```sh
+cp .env.example .env
+```
+
+Edit `.env` to provide your credentials. These will automatically be loaded by the script when it runs.
+
 Run script to download assets:
 ```sh
 uv run lm_hojd.py
