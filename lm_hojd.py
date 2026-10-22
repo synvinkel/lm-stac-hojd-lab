@@ -7,6 +7,7 @@ load_dotenv()
 
 # ASSET_TYPE = "thumbnail"
 ASSET_TYPE = "data"
+COLLECTION_ID = "dtm-cog"
 
 # Get credentials from environment variables
 username = os.getenv("LM_USERNAME")
@@ -31,48 +32,39 @@ def create_endpoint_url(base_url, path):
 swagger_spec = load_swagger_spec("swagger.json")
 base_url = swagger_spec["servers"][0]["url"]
 
-collections_endpoint = create_endpoint_url(base_url, "/collections")
 collection_items_endpoint = create_endpoint_url(
     base_url, "/collections/{collection_id}/items?limit={limit}"
 )
 ### End swagger setup
 
-# Get available collections
-collections_response = requests.get(collections_endpoint, auth=auth)
-collections_as_json = collections_response.json()
+# Get items in the collection
+collection_items_response = requests.get(
+    collection_items_endpoint.format(collection_id=COLLECTION_ID, limit=10000)
+)
+collection_items_as_json = collection_items_response.json()
 
-# Download assets for each collection
-for collection in collections_as_json["collections"]:
-    collection_id = collection["id"]
+# Download assets for each item in the collection
+for feature in collection_items_as_json["features"]:
+    asset_url = feature["assets"][ASSET_TYPE]["href"]
+    filename = asset_url.split("/")[-1]
+    filepath = os.path.join("assets", filename)
 
-    collection_items_response = requests.get(
-        collection_items_endpoint.format(collection_id=collection_id, limit=10000),
-        auth=auth,
-    )
-    collection_items_as_json = collection_items_response.json()
+    os.makedirs("assets", exist_ok=True)
 
-    # Download assets for each item in the collection
-    for feature in collection_items_as_json["features"]:
-        asset_url = feature["assets"][ASSET_TYPE]["href"]
-        filename = asset_url.split("/")[-1]
-        filepath = os.path.join("assets", filename)
+    # Skip if file already exists
+    if os.path.exists(filepath):
+        print("Skipping", filename, "- already exists")
+        continue
 
-        os.makedirs("assets", exist_ok=True)
-
-        # Skip if file already exists
-        if os.path.exists(filepath):
-            print("Skipping", filename, "- already exists")
-            continue
-
-        # Download asset
-        print("Downloading", filename)
-        try:
-            response = requests.get(asset_url, auth=auth)
-            if response.status_code == 200:
-                with open(filepath, "wb") as f:
-                    f.write(response.content)
-                    print("Done downloading", filename)
-            else:
-                print(f"Error downloading {filename} - HTTP {response.status_code}")
-        except Exception as e:
-            print("Error downloading", filename, e)
+    # Download asset
+    print("Downloading", filename)
+    try:
+        response = requests.get(asset_url, auth=auth)
+        if response.status_code == 200:
+            with open(filepath, "wb") as f:
+                f.write(response.content)
+                print("Done downloading", filename)
+        else:
+            print(f"Error downloading {filename} - HTTP {response.status_code}")
+    except Exception as e:
+        print("Error downloading", filename, e)
