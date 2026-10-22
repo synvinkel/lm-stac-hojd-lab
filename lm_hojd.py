@@ -46,26 +46,40 @@ collection_items_as_json = collection_items_response.json()
 
 # Download assets for each item in the collection
 for feature in collection_items_as_json["features"]:
-    asset_url = feature["assets"][ASSET_TYPE]["href"]
+    asset = feature["assets"][ASSET_TYPE]
+    asset_url = asset["href"]
+    expected_size = asset.get("file:size")
     filename = asset_url.split("/")[-1]
     filepath = os.path.join(OUTPUT_DIR, filename)
+    partpath = filepath + ".part"
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # Skip if file already exists
+    # Skip if file already exists and is complete
     if os.path.exists(filepath):
-        print("Skipping", filename, "- already exists")
-        continue
+        if expected_size is None or os.path.getsize(filepath) == expected_size:
+            print("Skipping", filename, "- already exists")
+            continue
+        print("Redownloading", filename, "- incomplete file")
 
-    # Download asset
+    # Download asset to a .part file and rename it when complete, so an
+    # interrupted download never leaves a file that looks finished
     print("Downloading", filename)
     try:
-        response = requests.get(asset_url, auth=auth)
-        if response.status_code == 200:
-            with open(filepath, "wb") as f:
-                f.write(response.content)
-                print("Done downloading", filename)
-        else:
-            print(f"Error downloading {filename} - HTTP {response.status_code}")
+        with requests.get(asset_url, auth=auth, stream=True) as response:
+            if response.status_code != 200:
+                print(f"Error downloading {filename} - HTTP {response.status_code}")
+                continue
+            with open(partpath, "wb") as f:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    f.write(chunk)
+
+        if expected_size is not None and os.path.getsize(partpath) != expected_size:
+            print(f"Error downloading {filename} - size mismatch")
+            os.remove(partpath)
+            continue
+
+        os.replace(partpath, filepath)
+        print("Done downloading", filename)
     except Exception as e:
         print("Error downloading", filename, e)
