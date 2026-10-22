@@ -8,6 +8,7 @@ load_dotenv()
 # ASSET_TYPE = "thumbnail"
 ASSET_TYPE = "data"
 COLLECTION_ID = "dtm-cog"
+OUTPUT_DIR = os.getenv("LM_OUTPUT_DIR") or "assets"
 
 # Get credentials from environment variables
 username = os.getenv("LM_USERNAME")
@@ -47,9 +48,9 @@ collection_items_as_json = collection_items_response.json()
 for feature in collection_items_as_json["features"]:
     asset_url = feature["assets"][ASSET_TYPE]["href"]
     filename = asset_url.split("/")[-1]
-    filepath = os.path.join("assets", filename)
+    filepath = os.path.join(OUTPUT_DIR, filename)
 
-    os.makedirs("assets", exist_ok=True)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Skip if file already exists
     if os.path.exists(filepath):

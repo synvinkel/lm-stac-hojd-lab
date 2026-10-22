@@ -13,6 +13,8 @@ cp .env.example .env
 
 Edit `.env` to provide your credentials. These will automatically be loaded by the script when it runs.
 
+Downloads are saved to `./assets` by default. Set `LM_OUTPUT_DIR` in `.env` (or the environment) to use another directory.
+
 Run script to download assets:
 ```sh
 uv run lm_hojd.py
